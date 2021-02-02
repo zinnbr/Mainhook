@@ -16,12 +16,13 @@ local antiaim_pitch = ui.reference("AA", "Anti-aimbot angles", "Pitch")
 local antiaim_yaw_base = ui.reference("AA", "Anti-aimbot angles", "Yaw base")
 local antiaim_yaw, antiaim_yaw_slider  = ui.reference("AA", "Anti-aimbot angles", "Yaw")
 local antiaim_body_yaw, antiaim_body_yaw_slider = ui.reference("AA", "Anti-aimbot angles", "Body yaw")
-local antiaim_freestanding_body_yaw = ui.reference("AA", "Anti-aimbot angles", "Freestanding body yaw")
 local antiaim_lower_body_yaw_target = ui.reference("AA", "Anti-aimbot angles", "Lower body yaw target")
 local antiaim_fake_yaw_limit = ui.reference("AA", "Anti-aimbot angles", "Fake yaw limit")
 local players_reset_all = ui.reference("PLAYERS", "Players", "Reset all")
 local force_trd_alive, force_trd_alive_key = ui.reference("VISUALS", "Effects", "Force third person (alive)")
 local hide_from_obs = ui.reference("MISC", "Settings", "Hide from OBS")
+local fov_ref = ui.reference("MISC", "Miscellaneous", "Override FOV")
+local fov_zoom_ref = ui.reference("MISC", "Miscellaneous", "Override zoom FOV")
 
 ------------------------------------------------------------------------------------------------------------
 
@@ -94,7 +95,6 @@ ui.set(antiaim_yaw_base, "Local view")
 ui.set(antiaim_yaw, "Off")
 ui.set(antiaim_body_yaw, "Off")
 ui.set(antiaim_body_yaw_slider, 0)
-ui.set(antiaim_freestanding_body_yaw, true)
 ui.set(antiaim_lower_body_yaw_target, "Off")
 ui.set(antiaim_fake_yaw_limit, 0)
 local legitaa_last_tick = 0
@@ -105,8 +105,10 @@ local disabled_by_fps = false
 
 --extra functions
 local clear_console = ui.new_checkbox("Misc", "Miscellaneous", "Clear console")
-local unbind_shift = ui.new_checkbox("AA", "Other", "Shift peek")
-
+local override_fov = ui.new_checkbox("VISUALS", "Effects", "Thirdperson FOV override")
+local override_fov_slider = ui.new_slider("VISUALS", "Effects", "Thirdperson FOV", 1, 135, 90, true, "°")
+local override_fp_fov_slider = ui.new_slider("VISUALS", "Effects", "Firstperson FOV", 1, 135, 90, true, "°")
+local override_zoom_fov = ui.new_checkbox("VISUALS", "Player ESP", "No zoom on thirdperson")
 --[[
 local AA_occurs = ui.new_checkbox("AA", "Other", "Antiaim occurrences indicator")
 local AA_identify = 0
@@ -126,6 +128,32 @@ client.set_event_callback("cs_win_panel_match", function ()
 	first = false
 	legitaa_last_tick = 0
 	left = false
+end)
+
+--Scope fov override
+client.set_event_callback("setup_command", function(cmd)
+	if not ui.get(override_zoom_fov) then
+		return
+	else
+		if ui.get(force_trd_alive_key) and ui.get(force_trd_alive) then
+			ui.set(fov_zoom_ref, 0)
+		else
+			ui.set(fov_zoom_ref, 100)
+		end
+	end
+end)
+
+-- FOV override
+client.set_event_callback("setup_command", function(cmd) 
+	if not ui.get(override_fov) or not ui.get(force_trd_alive) then
+		return
+	else
+		if ui.get(force_trd_alive_key) then
+			ui.set(fov_ref, ui.get(override_fov_slider))
+		else
+			ui.set(fov_ref, ui.get(override_fp_fov_slider))
+		end
+	end
 end)
 
 --[[
@@ -175,16 +203,6 @@ local function clear_the_console()
 	end)
 end
 ui.set_callback(clear_console, clear_the_console)
-
--- Unbinder for shift peek
-local function unbinder()
-	if ui.get(unbind_shift) then
-		client.exec("unbind shift")
-	else
-		client.exec("bind shift +speed")
-	end
-end
-ui.set_callback(unbind_shift, unbinder)
 
 -- get_fps dependencies
 local function round(num, numDecimalPlaces)
@@ -456,7 +474,11 @@ local function menu_call()
 	ui.set_visible(legit_aa_fps, ui.get(legit_aa))
 	ui.set_visible(legit_aa_fps_slider, ui.get(legit_aa_fps))
 	ui.set_visible(disabled_color, ui.get(legit_aa_fps))
+	ui.set_visible(override_fov_slider, ui.get(override_fov))
+	ui.set_visible(override_fp_fov_slider, ui.get(override_fov))
 end
 menu_call()
 ui.set_callback(legit_aa, menu_call)
 ui.set_callback(legit_aa_fps, menu_call)
+ui.set_callback(override_fov, menu_call)
+
